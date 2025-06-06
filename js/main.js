@@ -192,8 +192,8 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000); // Pure black background for maximum contrast
 
 // Add mouse control variables
-let isDragging = false;
-let previousMouseY = 0;
+//let isDragging = false;
+//let previousMouseY = 0;
 let bumpScaleValue = 1.0; // Higher initial bump scale value for more dramatic effect
 let displacementScaleValue = 0.3; // Initial displacement scale value
 
@@ -291,6 +291,7 @@ window.addEventListener('resize', () => {
 });
 
 // Mouse event listeners for bump scale control
+/*
 window.addEventListener('mousedown', (event) => {
     isDragging = true;
     previousMouseY = event.clientY;
@@ -333,6 +334,7 @@ window.addEventListener('mousemove', (event) => {
         }
     }
 });
+*/
 
 // Animation loop
 function animate() {

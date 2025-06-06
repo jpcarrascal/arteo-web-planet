@@ -6,7 +6,7 @@ let selectedInput = null;
 
 // CC automap variables
 let lastUsedCC = null;
-let automapActive = false;
+let automapActive = true;
 let ccToParameterMap = {}; // Store CC number to parameter mappings
 
 // Function to initialize WebMidi
@@ -69,6 +69,8 @@ async function initWebMidi() {
                 if (automapButton) {
                     automapButton.disabled = false;
                     automapButton.classList.remove('disabled');
+                    document.getElementById('toggleAutomap').textContent = "Cancel Automap";
+                    document.getElementById('automapStatus').textContent = "Move any CC controller...";
                 }
                 
                 // Set up listener for MIDI messages

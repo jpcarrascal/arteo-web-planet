@@ -28,6 +28,13 @@
 </head>
 <body>
     <div id="info">Drag mouse up/down to adjust Bump(0-5)/Displacement(0-2): <span id="bumpValue">B:1.00/D:0.30</span><br><span style="font-size: 0.8em; opacity: 0.8;">Dramatic side lighting shows terrain detail</span></div>
+    <div id="midi-controls" style="position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.7); color: white; padding: 10px; border-radius: 5px; font-family: Arial, sans-serif;">
+        <label for="midiInputs">MIDI Input: </label>
+        <select id="midiInputs">
+            <option value="">Select MIDI Input</option>
+        </select>
+        <div id="midiStatus" style="margin-top: 5px; font-size: 0.8em;"></div>
+    </div>
     <script type="importmap">
         {
             "imports": {

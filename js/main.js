@@ -1,5 +1,104 @@
 import * as THREE from 'three';
 
+// Initialize WebMidi
+let midiInputs = [];
+let selectedInput = null;
+
+// Function to initialize WebMidi
+async function initWebMidi() {
+    try {
+        // Enable WebMidi.js
+        await WebMidi.enable();
+        console.log("WebMidi enabled!");
+        
+        // Get the dropdown element
+        const midiInputsSelect = document.getElementById('midiInputs');
+        const midiStatus = document.getElementById('midiStatus');
+        
+        // Clear existing options
+        while (midiInputsSelect.options.length > 1) {
+            midiInputsSelect.remove(1);
+        }
+        
+        // Check if any MIDI inputs are detected
+        if (WebMidi.inputs.length < 1) {
+            midiStatus.textContent = "No MIDI devices detected";
+            return;
+        }
+        
+        // Store the inputs and populate dropdown
+        midiInputs = WebMidi.inputs;
+        midiStatus.textContent = `${midiInputs.length} MIDI input(s) detected`;
+        
+        // Add each input to the dropdown menu
+        midiInputs.forEach(input => {
+            const option = document.createElement("option");
+            option.value = input.id;
+            option.text = input.name;
+            midiInputsSelect.add(option);
+        });
+        
+        // Set up an event listener for the dropdown
+        midiInputsSelect.addEventListener('change', function() {
+            const selectedId = this.value;
+            
+            // Disconnect from previously selected input if any
+            if (selectedInput) {
+                selectedInput.removeListener();
+            }
+            
+            if (selectedId) {
+                // Find the selected input device
+                selectedInput = WebMidi.getInputById(selectedId);
+                midiStatus.textContent = `Connected to ${selectedInput.name}`;
+                
+                // Set up listener for MIDI messages
+                selectedInput.addListener("midimessage", (event) => {
+                    console.log("MIDI Message:", event.message);
+                    // You can process MIDI messages here to control the visualization
+                });
+                
+                // Add listeners for specific MIDI events
+                selectedInput.addListener("noteon", (e) => {
+                    console.log(`Note On: ${e.note.name}${e.note.octave} (${e.note.number}) - Velocity: ${e.velocity}`);
+                    // Example: Change rotation speed based on note number
+                    const normalizedNote = (e.note.number - 36) / 60; // Range: 0-1 for notes 36-96
+                    sphere.rotation.x = normalizedNote * 0.01;
+                    sphere.rotation.y = normalizedNote * 0.02;
+                });
+                
+                selectedInput.addListener("controlchange", (e) => {
+                    console.log(`Control Change: Controller ${e.controller.number} - Value: ${e.value}`);
+                    // Map control changes to sphere properties
+                    switch(e.controller.number) {
+                        case 1: // Mod wheel (CC#1)
+                            // Adjust bump scale with mod wheel
+                            bumpScaleValue = e.value / 127 * 5; // Scale to 0-5 range
+                            material.bumpScale = bumpScaleValue;
+                            document.getElementById('bumpValue').textContent = 
+                                `B:${bumpScaleValue.toFixed(2)}/D:${displacementScaleValue.toFixed(2)}`;
+                            break;
+                        case 74: // Often filter cutoff or similar
+                            // Adjust displacement scale
+                            displacementScaleValue = e.value / 127 * 2; // Scale to 0-2 range
+                            material.displacementScale = displacementScaleValue;
+                            document.getElementById('bumpValue').textContent = 
+                                `B:${bumpScaleValue.toFixed(2)}/D:${displacementScaleValue.toFixed(2)}`;
+                            break;
+                    }
+                });
+            } else {
+                selectedInput = null;
+                midiStatus.textContent = "No MIDI input selected";
+            }
+        });
+        
+    } catch (err) {
+        console.error("WebMidi could not be enabled:", err);
+        document.getElementById('midiStatus').textContent = "WebMidi error: " + err;
+    }
+}
+
 // Initialize scene, camera and renderer
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000); // Pure black background for maximum contrast
@@ -159,3 +258,10 @@ function animate() {
 }
 
 animate();
+
+// Initialize WebMidi after DOM content is loaded
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initWebMidi);
+} else {
+    initWebMidi();
+}

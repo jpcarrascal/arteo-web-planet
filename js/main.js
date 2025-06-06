@@ -4,6 +4,11 @@ import * as THREE from 'three';
 let midiInputs = [];
 let selectedInput = null;
 
+// CC automap variables
+let lastUsedCC = null;
+let automapActive = false;
+let ccToParameterMap = {}; // Store CC number to parameter mappings
+
 // Function to initialize WebMidi
 async function initWebMidi() {
     try {
@@ -14,6 +19,13 @@ async function initWebMidi() {
         // Get the dropdown element
         const midiInputsSelect = document.getElementById('midiInputs');
         const midiStatus = document.getElementById('midiStatus');
+        const automapButton = document.getElementById('toggleAutomap');
+        
+        // Initially disable the automap button
+        if (automapButton) {
+            automapButton.disabled = true;
+            automapButton.classList.add('disabled');
+        }
         
         // Clear existing options
         while (midiInputsSelect.options.length > 1) {
@@ -41,6 +53,7 @@ async function initWebMidi() {
         // Set up an event listener for the dropdown
         midiInputsSelect.addEventListener('change', function() {
             const selectedId = this.value;
+            const automapButton = document.getElementById('toggleAutomap');
             
             // Disconnect from previously selected input if any
             if (selectedInput) {
@@ -51,6 +64,12 @@ async function initWebMidi() {
                 // Find the selected input device
                 selectedInput = WebMidi.getInputById(selectedId);
                 midiStatus.textContent = `Connected to ${selectedInput.name}`;
+                
+                // Enable the automap button
+                if (automapButton) {
+                    automapButton.disabled = false;
+                    automapButton.classList.remove('disabled');
+                }
                 
                 // Set up listener for MIDI messages
                 selectedInput.addListener("midimessage", (event) => {
@@ -67,21 +86,44 @@ async function initWebMidi() {
                     sphere.rotation.y = normalizedNote * 0.02;
                 });
                 
+                // Listen for control change messages
                 selectedInput.addListener("controlchange", (e) => {
                     console.log(`Control Change: Controller ${e.controller.number} - Value: ${e.value}`);
-                    // Map control changes to sphere properties
+                    
+                    // Process CC value (0-127) to normalized value (0-1)
+                    const normalizedValue = e.value / 127;
+                    
+                    // If automap is active, record the last used CC and map it to displacement
+                    if (automapActive) {
+                        lastUsedCC = e.controller.number;
+                        automapActive = false;
+                        
+                        // Map this CC to the displacement control
+                        ccToParameterMap[lastUsedCC] = "displacement";
+                        
+                        // Update UI
+                        document.getElementById('toggleAutomap').textContent = "Enable CC Automap";
+                        document.getElementById('automapStatus').textContent = `CC#${lastUsedCC} mapped to displacement`;
+                        
+                        // Update mappings list
+                        updateMappingsList();
+                    }
+                    
+                    // Always process mapped CCs
+                    if (ccToParameterMap[e.controller.number] === "displacement") {
+                        // Map this CC to displacement scale (range 0-2)
+                        displacementScaleValue = normalizedValue * 100;
+                        material.displacementScale = displacementScaleValue;
+                        document.getElementById('bumpValue').textContent = 
+                            `B:${bumpScaleValue.toFixed(2)}/D:${displacementScaleValue.toFixed(2)}`;
+                    }
+                    
+                    // Still keep the old mappings for compatibility
                     switch(e.controller.number) {
                         case 1: // Mod wheel (CC#1)
                             // Adjust bump scale with mod wheel
-                            bumpScaleValue = e.value / 127 * 5; // Scale to 0-5 range
+                            bumpScaleValue = normalizedValue * 5; // Scale to 0-5 range
                             material.bumpScale = bumpScaleValue;
-                            document.getElementById('bumpValue').textContent = 
-                                `B:${bumpScaleValue.toFixed(2)}/D:${displacementScaleValue.toFixed(2)}`;
-                            break;
-                        case 74: // Often filter cutoff or similar
-                            // Adjust displacement scale
-                            displacementScaleValue = e.value / 127 * 2; // Scale to 0-2 range
-                            material.displacementScale = displacementScaleValue;
                             document.getElementById('bumpValue').textContent = 
                                 `B:${bumpScaleValue.toFixed(2)}/D:${displacementScaleValue.toFixed(2)}`;
                             break;
@@ -90,12 +132,56 @@ async function initWebMidi() {
             } else {
                 selectedInput = null;
                 midiStatus.textContent = "No MIDI input selected";
+                
+                // Disable the automap button
+                if (automapButton) {
+                    automapButton.disabled = true;
+                    automapButton.classList.add('disabled');
+                }
             }
         });
         
     } catch (err) {
         console.error("WebMidi could not be enabled:", err);
         document.getElementById('midiStatus').textContent = "WebMidi error: " + err;
+    }
+    
+    // Set up automap toggle button
+    const automapButton = document.getElementById('toggleAutomap');
+    if (automapButton) {
+        automapButton.addEventListener('click', function() {
+            automapActive = !automapActive;
+            if (automapActive) {
+                this.textContent = "Cancel CC Automap";
+                document.getElementById('automapStatus').textContent = "Move any CC controller...";
+            } else {
+                this.textContent = "Enable CC Automap";
+                document.getElementById('automapStatus').textContent = "Waiting for CC...";
+            }
+        });
+    }
+}
+
+// Function to update the mappings list in UI
+function updateMappingsList() {
+    const mappingsList = document.getElementById('mappingsList');
+    if (!mappingsList) return;
+    
+    // Clear existing list
+    mappingsList.innerHTML = '';
+    
+    // Add each mapping to the list
+    Object.entries(ccToParameterMap).forEach(([cc, parameter]) => {
+        const li = document.createElement('li');
+        li.textContent = `CC#${cc} → ${parameter}`;
+        mappingsList.appendChild(li);
+    });
+    
+    // If no mappings, add a message
+    if (Object.keys(ccToParameterMap).length === 0) {
+        const li = document.createElement('li');
+        li.textContent = "No CC mappings yet";
+        mappingsList.appendChild(li);
     }
 }
 
@@ -261,7 +347,11 @@ animate();
 
 // Initialize WebMidi after DOM content is loaded
 if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initWebMidi);
+    document.addEventListener("DOMContentLoaded", () => {
+        initWebMidi();
+        updateMappingsList(); // Initialize the mappings list
+    });
 } else {
     initWebMidi();
+    updateMappingsList(); // Initialize the mappings list
 }

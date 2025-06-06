@@ -24,16 +24,85 @@
             font-family: Arial, sans-serif;
             pointer-events: none;
         }
+        #midi-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            max-width: 300px;
+        }
+        #toggleAutomap {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        #toggleAutomap:hover {
+            background: #2980b9;
+        }
+        #toggleAutomap.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #95a5a6;
+        }
+        #toggleAutomap.disabled:hover {
+            background: #95a5a6;
+        }
+        #automapStatus {
+            font-style: italic;
+        }
+        #mappingsList {
+            list-style-type: none;
+            padding-left: 5px;
+            margin: 5px 0;
+        }
+        #mappingsList li {
+            padding: 2px 0;
+        }
+        #midiInputs {
+            padding: 3px;
+            border-radius: 3px;
+        }
+        .control-section {
+            margin-top: 10px;
+        }
+        #automapStatus {
+            margin-left: 10px;
+            font-size: 0.9em;
+        }
+        #ccMappings {
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+        #midiStatus {
+            margin-top: 10px;
+            font-size: 0.8em;
+        }
     </style>
 </head>
 <body>
     <div id="info">Drag mouse up/down to adjust Bump(0-5)/Displacement(0-2): <span id="bumpValue">B:1.00/D:0.30</span><br><span style="font-size: 0.8em; opacity: 0.8;">Dramatic side lighting shows terrain detail</span></div>
-    <div id="midi-controls" style="position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.7); color: white; padding: 10px; border-radius: 5px; font-family: Arial, sans-serif;">
+    <div id="midi-controls">
         <label for="midiInputs">MIDI Input: </label>
         <select id="midiInputs">
             <option value="">Select MIDI Input</option>
         </select>
-        <div id="midiStatus" style="margin-top: 5px; font-size: 0.8em;"></div>
+        <div class="control-section">
+            <button id="toggleAutomap">Enable CC Automap</button>
+            <span id="automapStatus">Waiting for CC...</span>
+        </div>
+        <div id="ccMappings">
+            <div>Current Mappings:</div>
+            <ul id="mappingsList"></ul>
+        </div>
+        <div id="midiStatus"></div>
     </div>
     <script type="importmap">
         {
